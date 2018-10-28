@@ -1,0 +1,300 @@
+-- Create a block at the top of the screen.
+-- If not possible, trigger the game over screen.
+local function create_block(self)
+	-- 1: empty
+	-- 2: I (cyan)
+	-- 3: O (yellow)
+	-- 4: T (purple)
+	-- 5: S (green)
+	-- 6: Z (red)
+	-- 7: J (blue)
+	-- 8: L (orange)
+	self.block = {}
+	self.block.number = math.random(2, 8)
+	if self.block.number == 2 then
+		-- OOOO
+		self.block.coords = {
+			{ x = 4, y = 20 },
+			{ x = 5, y = 20 },
+			{ x = 6, y = 20 },
+			{ x = 7, y = 20 }
+		}
+	elseif self.block.number == 3 then
+		-- OO
+		-- OO
+		self.block.coords = {
+			{ x = 5, y = 20 },
+			{ x = 6, y = 20 },
+			{ x = 5, y = 19 },
+			{ x = 6, y = 19 }
+		}
+	elseif self.block.number == 4 then
+		-- OOO
+		--  O
+		self.block.coords = {
+			{ x = 5, y = 20 },
+			{ x = 6, y = 20 },
+			{ x = 7, y = 20 },
+			{ x = 6, y = 19 }
+		}
+	elseif self.block.number == 5 then
+		--  OO
+		-- OO
+		self.block.coords = {
+			{ x = 6, y = 20 },
+			{ x = 7, y = 20 },
+			{ x = 5, y = 19 },
+			{ x = 6, y = 19 }
+		}
+	elseif self.block.number == 6 then
+		-- OO
+		--  OO
+		self.block.coords = {
+			{ x = 5, y = 20 },
+			{ x = 6, y = 20 },
+			{ x = 6, y = 19 },
+			{ x = 7, y = 19 }
+		}
+	elseif self.block.number == 7 then
+		-- O
+		-- OOO
+		self.block.coords = {
+			{ x = 5, y = 20 },
+			{ x = 5, y = 19 },
+			{ x = 6, y = 19 },
+			{ x = 7, y = 19 }
+		}
+	elseif self.block.number == 8 then
+		--   O
+		-- OOO
+		self.block.coords = {
+			{ x = 7, y = 20 },
+			{ x = 5, y = 19 },
+			{ x = 6, y = 19 },
+			{ x = 7, y = 19 }
+		}
+	end
+
+	for i,v in ipairs(self.block.coords) do
+		if self.grid[v.x][v.y] ~= 1 then
+			self.alive = false
+			msg.post("/gui#gameover", "enable")
+		end
+	end
+	
+	if not self.alive then
+		-- Try again with one position up so that it doesn't look like there's an empty line at the top
+		for i,v in ipairs(self.block.coords) do
+			if v.y < 20 and self.grid[v.x][v.y + 1] ~= 1 then
+				return -- cannot even draw one above
+			end
+		end
+		for i,v in ipairs(self.block.coords) do
+			if v.y < 20 then
+				tilemap.set_tile("/grid#grid", "layer", v.x, v.y + 1, self.block.number)
+			end
+		end
+		return
+	end
+	
+	for i,v in ipairs(self.block.coords) do
+		tilemap.set_tile("/grid#grid", "layer", v.x, v.y, self.block.number)
+	end
+end
+
+-- Initialize the game (at startup or after game over).
+local function reinitialize(self)
+	msg.post(".", "acquire_input_focus")
+	msg.post("/gui#gameover", "disable")
+
+	self.grid = {
+		{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+		{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+		{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+		{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+		{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+		{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+		{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+		{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+		{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+		{ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
+	}
+	for x = 1,10 do
+		for y = 1,20 do
+			tilemap.set_tile("/grid#grid", "layer", x, y, 1)
+		end
+	end
+
+	math.randomseed(os.time())
+	math.random(); math.random(); math.random()  -- make it more random
+
+	self.speed = 2  -- blocks per second
+	self.score = 0
+	msg.post("/gui#score", "post_score", { score = 0 })
+	self.t = 0  -- time since last update
+	self.alive = true
+
+	create_block(self)
+end
+
+function init(self)
+	reinitialize(self)
+end
+
+-- Check if a line was completed. If so, return true and update the grid/tilemap.
+-- It's only done one line at a time.
+local function check_lines(self)
+	for y = 1,20 do
+		linecomplete = true
+		for x = 1,10 do
+			if self.grid[x][y] == 1 then
+				linecomplete = false
+			end
+		end
+		if linecomplete then
+			for yy = y + 1, 20 do
+				for x = 1,10 do
+					self.grid[x][yy - 1] = self.grid[x][yy]
+					tilemap.set_tile("/grid#grid", "layer", x, yy - 1, self.grid[x][yy])
+				end
+			end
+			for x = 1,10 do
+				self.grid[x][20] = 1
+				tilemap.set_tile("/grid#grid", "layer", x, 20, 1)
+			end
+			return true
+		end
+	end
+	return false
+end
+
+-- Update the grid after a block reached the floor or another block.
+-- Also check for completed lines and update score & speed accordingly.
+local function next_block(self)
+	for i,v in ipairs(self.block.coords) do
+		self.grid[v.x][v.y] = self.block.number
+	end
+	while check_lines(self) do
+		self.score = self.score + 10
+		msg.post("/gui#score", "post_score", { score = self.score })
+		if self.score % 100 == 0 then
+			self.speed = self.speed + 1
+		end
+	end
+	create_block(self)
+end
+
+-- Paint `block` coords with empty tile, `nextcoords` with correct tile,
+-- and set `block` coords to `nextcoords`.
+local function repaint(block, nextcoords)
+	for i,v in ipairs(block.coords) do
+		tilemap.set_tile("/grid#grid", "layer", v.x, v.y, 1)
+	end
+	for i,v in ipairs(nextcoords) do
+		tilemap.set_tile("/grid#grid", "layer", v.x, v.y, block.number)
+	end
+	block.coords = nextcoords
+end
+
+-- Move the block down.
+-- Return false if we reached the floor or another block, and true if we didn't.
+local function move_down(self)
+	local nextcoords = {}
+	for i,v in ipairs(self.block.coords) do
+		if v.y == 1 then
+			-- Reached floor.
+			next_block(self)
+			return false
+		end
+		local number = self.grid[v.x][v.y - 1]
+		if number ~= 1 then
+			-- Reached an existing block.
+			next_block(self)
+			return false
+		end
+		table.insert(nextcoords, { x = v.x, y = v.y - 1 })
+	end
+	repaint(self.block, nextcoords)
+	return true
+end
+
+function update(self, dt)
+	if not self.alive then
+		return
+	end
+	self.t = self.t + dt
+	if self.t > 1 / self.speed then
+		move_down(self)
+		self.t = 0
+	end
+end
+
+-- Rotate the block if possible, and return true on success.
+local function rotate(self)
+	if self.block.number == 3 then  -- O block
+		return true
+	end
+	local nextcoords = {}
+	local center = nil
+	if self.block.number == 2 or self.block.number == 4 or self.block.number == 6 then
+		center = self.block.coords[2]
+	elseif self.block.number == 5 then
+		center = self.block.coords[1]
+	elseif self.block.number == 7 or self.block.number == 8 then
+		center = self.block.coords[3]
+	end
+
+	for i,v in ipairs(self.block.coords) do
+		local point = { x = center.x + center.y - v.y, y = center.y + v.x - center.x }
+		if point.x < 1 or point.x > 10 or point.y < 1 or point.y > 20 then
+			return false
+		end
+		if self.grid[point.x][point.y] ~= 1 then
+			return false
+		end
+		table.insert(nextcoords, point)
+	end
+	repaint(self.block, nextcoords)
+	return true
+end
+
+function on_input(self, action_id, action)
+	if not self.alive then
+		if action_id == hash("space") then
+			reinitialize(self)
+		end
+		return
+	end
+	if action_id == hash("up") and action.pressed then
+		rotate(self)
+	elseif action_id == hash("down") and (action.pressed or action.repeated) then
+		move_down(self)
+	elseif action_id == hash("left") and (action.pressed or action.repeated) then
+		local nextcoords = {}
+		for i,v in ipairs(self.block.coords) do
+			if v.x == 1 then
+				return
+			end
+			if self.grid[v.x - 1][v.y] ~= 1 then
+				return
+			end
+			table.insert(nextcoords, { x = v.x - 1, y = v.y } )
+		end
+		repaint(self.block, nextcoords)
+	elseif action_id == hash("right") and (action.pressed or action.repeated) then
+		local nextcoords = {}
+		for i,v in ipairs(self.block.coords) do
+			if v.x == 10 then
+				return
+			end
+			if self.grid[v.x + 1][v.y] ~= 1 then
+				return
+			end
+			table.insert(nextcoords, { x = v.x + 1, y = v.y } )
+		end
+		repaint(self.block, nextcoords)
+	elseif action_id == hash("space") and action.pressed then
+		while move_down(self) do
+		end
+	end
+end

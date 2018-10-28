@@ -1,0 +1,17 @@
+[bootstrap]
+main_collection = /main/main.collectionc
+
+[script]
+shared_state = 1
+
+[display]
+width = 320
+height = 640
+
+[project]
+title = Tetris
+
+[input]
+repeat_interval = 0.05
+repeat_delay = 0.05
+
