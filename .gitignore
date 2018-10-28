@@ -39,5 +39,9 @@ luac.out
 *.x86_64
 *.hex
 
+# MacOS
+.DS_Store
+
 # Defold build directory
-build/*
+/.internal
+/build
